@@ -5,7 +5,7 @@ This repository implements a building segmentation workflow for panoramic street
 
 - Grounding DINO via Hugging Face Transformers
 - SAM2 for building instance segmentation
-- Optional ground-floor element detection
+- Ground-floor detection
 
 The workflow is designed for urban change analysis and façade-level interpretation.
 

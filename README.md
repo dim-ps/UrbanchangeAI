@@ -1,4 +1,4 @@
-# GroundedSAM2 Urban Change
+#Urban Change AI
 
 A research prototype for building instance segmentation and experimental ground-floor detection from panoramic street-level imagery.
 

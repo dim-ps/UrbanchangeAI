@@ -105,6 +105,11 @@ Place panoramic images in:
 ```
 input/sample_images/
 ```
+They can be downloaded from:
+
+```
+https://lgrl-net.aegean.gr:5051/d/s/18weT1IFgHvCqaik8McmHVtIVshuyShA/opp758Qp2D1MTb5tPbm4CCELKnsTFn06-L7BgpUUKVA0
+```
 
 Supported formats:
 

@@ -32,3 +32,36 @@ checkpoints/*.ckpt
 # OS
 .DS_Store
 Thumbs.db
+# Input data
+input/sample_images/*.jpg
+input/sample_images/*.jpeg
+input/sample_images/*.png
+
+# Checkpoints
+checkpoints/*.pt
+checkpoints/*.pth
+checkpoints/*.ckpt
+
+# Outputs
+outputs/*
+!outputs/README.md
+
+# Windows metadata
+*:Zone.Identifier
+
+# Input data
+input/sample_images/*.jpg
+input/sample_images/*.jpeg
+input/sample_images/*.png
+
+# Checkpoints
+checkpoints/*.pt
+checkpoints/*.pth
+checkpoints/*.ckpt
+
+# Outputs
+outputs/*
+!outputs/README.md
+
+# Windows metadata
+*:Zone.Identifier

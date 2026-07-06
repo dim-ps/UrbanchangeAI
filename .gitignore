@@ -1,8 +1,0 @@
-checkpoints/*.pt
-checkpoints/*.pth
-outputs/
-*.npy
-__pycache__/
-.ipynb_checkpoints/
-.env
-*.log

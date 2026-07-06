@@ -14,5 +14,4 @@ It can be downloaded from:
 
 ```
 https://lgrl-net.aegean.gr:5051/d/s/18wen89ZJqAu19askwmpYj6G1FCdtbBc/kgB2qOdzYG2Om6sVVSuYPrfaaBQsC7DI-5b_gUwoKVA0
-
 ```

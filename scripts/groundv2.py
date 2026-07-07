@@ -11,10 +11,9 @@ from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
 
 
-# =================================================
-# UrbanScene Intelligence v0.1
-# Commercial Unit Proposal Pipeline
-# =================================================
+# -------------------------------------------------
+# CONFIG
+# -------------------------------------------------
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 

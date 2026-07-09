@@ -18,13 +18,22 @@ env/
 # Logs
 *.log
 
-# Outputs
-outputs/
+# Model checkpoints (see pretrained_model/README.md)
+pretrained_model/*.pth
+pretrained_model/*.pt
+pretrained_model/*.ckpt
 
-# Checkpoints
-checkpoints/*.pt
-checkpoints/*.pth
-checkpoints/*.ckpt
+# Input images (see data/panos/README.md)
+data/panos/*.jpg
+data/panos/*.jpeg
+data/panos/*.png
+
+# Pipeline outputs (see results/README.md)
+results/*
+!results/README.md
+
+# HuggingFace / model download cache
+.cache/
 
 # NumPy
 *.npy
@@ -32,36 +41,6 @@ checkpoints/*.ckpt
 # OS
 .DS_Store
 Thumbs.db
-# Input data
-input/sample_images/*.jpg
-input/sample_images/*.jpeg
-input/sample_images/*.png
-
-# Checkpoints
-checkpoints/*.pt
-checkpoints/*.pth
-checkpoints/*.ckpt
-
-# Outputs
-outputs/*
-!outputs/README.md
-
-# Windows metadata
-*:Zone.Identifier
-
-# Input data
-input/sample_images/*.jpg
-input/sample_images/*.jpeg
-input/sample_images/*.png
-
-# Checkpoints
-checkpoints/*.pt
-checkpoints/*.pth
-checkpoints/*.ckpt
-
-# Outputs
-outputs/*
-!outputs/README.md
 
 # Windows metadata
 *:Zone.Identifier

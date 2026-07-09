@@ -1,152 +1,130 @@
-## Urban Change AI
+# Ground-Floor Segmentation & Use Classification
 
-A research prototype for building instance segmentation and experimental ground-floor detection from panoramic street-level imagery.
+Detect buildings in a street-level (equirectangular / normal) photo, segment each
+one, isolate its **ground floor**, classify the ground-floor **use**
+(retail / cafe / pharmacy / residential …), and read any **sign/storefront text**
+on it. Output is an annotated image plus a ground-floor mask.
 
----
-
-## Workflow
-
-```
-Panoramic image
-        │
-        ▼
-Grounding DINO
-        │
-        ▼
-SAM2
-        │
-        ▼
-Building Instance Segmentation
-        │
-        ▼
-Experimental Ground-Floor Detection
-```
+Uses five models: **Grounding DINO (SwinB)** for detection, **SAM (ViT-H)** for
+segmentation, **SegFormer** as a semantic guard, **CLIP** for use classification,
+and **PaddleOCR PP-OCRv6** (multilingual, Greek + English) for sign text.
 
 ---
 
-## Current Status
-
-| Module | Status |
-|---------|--------|
-| Building Detection | ✅ |
-| Building Instance Segmentation | ✅ |
-| Ground-floor Detection | 🟡 Experimental |
-| Ground-floor Use Classification | ⏳ Planned |
-
----
-
-## Repository Structure
+## Folder layout
 
 ```
-GroundedSAM2-UrbanChange/
-
-├── scripts/
-│   └── ground.py
-│
-├── input/
-│   └── sample_images/
-│
-├── outputs/
-│
-├── checkpoints/
-│
-├── docs/
-│
-├── README.md
+ground_floor_pipeline/
+├── ground_floor_sam_gdinov2.py # the current pipeline (single file) -- adds PaddleOCR sign text
+├── ground_floor_sam_gdino.py   # earlier version, kept for reference (no OCR step)
+├── download_models.sh          # download the 2 checkpoints (bash / wget)
+├── download_models.py          # download the 2 checkpoints (pure python)
 ├── requirements.txt
-├── environment.yml
-└── .gitignore
+├── README.md
+├── pretrained_model/           # the 2 .pth checkpoints go here
+└── data/panos/                 # put your input images here (optional)
+└── results/                    # created automatically; annotated outputs land here
 ```
 
 ---
 
-## Installation
-
-Create the Conda environment:
+## Setup
 
 ```bash
-conda env create -f environment.yml
-conda activate grounded_sam
+# 1. environment (Python 3.11 recommended)
+conda create -n groundfloor python=3.11 -y
+conda activate groundfloor
+
+# 2. install torch matching your CUDA FIRST, e.g. CUDA 12.8:
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+# then the rest:
+pip install -r requirements.txt
+
+# 3. download the two checkpoints into pretrained_model/
+bash download_models.sh          # or:  python download_models.py
 ```
 
-Install the official SAM2 repository:
+Two checkpoints are downloaded (~3.5 GB total):
+
+| File | Model | Size | Source |
+|------|-------|------|--------|
+| `sam_vit_h_4b8939.pth` | SAM ViT-H | 2.6 GB | Meta segment-anything |
+| `groundingdino_swinb_cogcoor.pth` | Grounding DINO SwinB | 938 MB | IDEA-Research |
+
+**CLIP**, **SegFormer**, Grounding DINO's **BERT** text encoder, and **PaddleOCR
+PP-OCRv6**'s detection + recognition models are *not* in the zip — they download
+themselves on first run (CLIP/SegFormer/BERT from Hugging Face into `./.cache`;
+PaddleOCR's models via PaddleX into `~/.paddlex/official_models`).
+
+---
+
+## Usage
 
 ```bash
-pip install -e .
+# single image
+python ground_floor_sam_gdinov2.py path/to/street.jpg
+
+# a whole folder (batch — models load once, then every image is processed)
+python ground_floor_sam_gdinov2.py data/panos
+
+# useful flags
+python ground_floor_sam_gdinov2.py data/panos \
+    --out results/my_run \        # output folder
+    --box-threshold 0.30 \        # lower = detect more buildings (more recall)
+    --gf-fraction 0.30 \          # bottom-fraction fallback height (0-1)
+    --max-side 1536               # downscale long side before inference (0 = keep)
 ```
+
+Each image produces two files in `results/ground_floor_sam_gdino/`:
+`<name>_ground_floor.png` (annotated) and `<name>_ground_floor_mask.png` (binary
+ground-floor mask).
 
 ---
 
-## Checkpoints
+## How it works (brief)
 
-Download the SAM2 checkpoint:
-
-```
-sam2.1_hiera_large.pt
-```
-It can be downloaded from:
-
-```
-https://lgrl-net.aegean.gr:5051/d/s/18wen89ZJqAu19askwmpYj6G1FCdtbBc/kgB2qOdzYG2Om6sVVSuYPrfaaBQsC7DI-5b_gUwoKVA0
-```
-
-and place it inside:
-
-```
-checkpoints/
-```
-
----
-
-## Input Images
-
-Place panoramic images in:
-
-```
-input/sample_images/
-```
-They can be downloaded from:
-
-```
-https://lgrl-net.aegean.gr:5051/d/s/18weT1IFgHvCqaik8McmHVtIVshuyShA/opp758Qp2D1MTb5tPbm4CCELKnsTFn06-L7BgpUUKVA0
-```
-
-Supported formats:
-
-- jpg
-- jpeg
-- png
+1. **Detection** — Grounding DINO (prompt `"building. house."`) runs on the whole
+   image **plus overlapping square tiles** (so a 360° pano doesn't collapse into
+   one giant box); degenerate/duplicate boxes are dropped.
+2. **Segmentation** — each building box is a **SAM** box-prompt → facade mask,
+   cleaned by three guards: clip-to-box + largest connected component, a
+   **SegFormer** semantic guard (drop masks that are mostly ceiling / floor / sky),
+   and an aspect guard (drop tall-thin arcade **pillars**).
+3. **Ground floor** — per building, in priority order:
+   - **Arcade check**: if the strip just above the facade is *ceiling* (covered
+     passage, upper floors hidden) → the whole segment is the ground floor.
+   - **Feature-based**: a *second* Grounding DINO pass detects shopfront features
+     (`"shop window. storefront. door. roller shutter. signboard. awning."`); the
+     ground floor is the band where those features are, scanned up from the street.
+   - **Fallback**: if no features land on the building, take the bottom `GF_FRACTION`.
+4. **Classification** — CLIP labels the ground-floor crop (retail / cafe /
+   pharmacy / residential …) with a confidence bucket.
+5. **Sign text** — **PaddleOCR PP-OCRv6** (detection + a single multilingual
+   recognizer covering Greek *and* English, no per-language switching needed)
+   reads any sign/storefront text from the same ground-floor mask. The crop is
+   re-extracted from the *original full-resolution* image, not the downscaled
+   working copy — signage is a small fraction of an 8192×4096 panorama and is
+   already illegible after the `--max-side` downscale. A small blocklist drops
+   the Street View "© 2024 Google" watermark text if OCR happens to pick it up.
+6. **Render** — the annotated image is drawn: building overlay, white-dashed
+   **building boundary**, yellow-dashed **ground-floor region**, B# tags,
+   per-building use + sign text + confidence, legend, and summary.
 
 ---
 
-## Run
+## Notes & limitations
 
-```bash
-python scripts/ground.py
-```
-
----
-
-## Outputs
-
-The generated outputs include:
-
-- Building detections
-- Ground-floor detections
-- Overlay images
-- Semantic masks
-- Instance masks
-- CSV files
-- JSON annotations
-
-All outputs are written to:
-
-```
-outputs/
-```
-
----
-
-## License
-
-Research prototype developed for urban change analysis.
+- **transformers 5.x**: `groundingdino-py` was written for transformers 4.x; the
+  script includes an in-memory compatibility shim (`_patch_groundingdino_for_transformers5`)
+  so no downgrade is needed. Nothing on disk is modified.
+- **No CUDA extension needed**: `groundingdino-py` runs its deformable-attention in
+  pure PyTorch, so a missing `groundingdino._C` build is harmless.
+- **Scale ambiguity**: from a single 2D image the exact storey line of a *multi-storey*
+  building can't be read reliably (a 1-storey shop close-up looks like a 5-storey block
+  far away). The feature/arcade cues handle most shopfronts; multi-storey buildings can
+  occasionally over- or under-cover. Metric depth / LiDAR would remove this ambiguity.
+- **OCR is optional at runtime**: if `paddleocr` isn't installed (or the model download
+  fails), PaddleOCR is silently skipped and every building just gets an empty sign text —
+  everything else in the pipeline still runs normally.
+- **GPU recommended** (ViT-H is heavy on CPU). Model load ≈ 1–2 min once; then a few
+  seconds per image.

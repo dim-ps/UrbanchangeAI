@@ -15,8 +15,9 @@ and **PaddleOCR PP-OCRv6** (multilingual, Greek + English) for sign text.
 
 ```
 ground_floor_pipeline/
-├── ground_floor_sam_gdinov2.py # the current pipeline (single file) -- adds PaddleOCR sign text
-├── ground_floor_sam_gdino.py   # earlier version, kept for reference (no OCR step)
+├── ground_floor_sam_gdinov2.py   # the current pipeline (single file) -- adds PaddleOCR sign text
+├── ground_floor_sam_gdinov2.5.py # optional next step -- adds a local VLM correction pass, see below
+├── ground_floor_sam_gdino.py     # earlier version, kept for reference (no OCR step)
 ├── download_models.sh          # download the 2 checkpoints (bash / wget)
 ├── download_models.py          # download the 2 checkpoints (pure python)
 ├── requirements.txt
@@ -109,6 +110,52 @@ ground-floor mask).
 6. **Render** — the annotated image is drawn: building overlay, white-dashed
    **building boundary**, yellow-dashed **ground-floor region**, B# tags,
    per-building use + sign text + confidence, legend, and summary.
+
+---
+
+## Optional next step: VLM-corrected ground floors (v2.5)
+
+`ground_floor_sam_gdinov2.5.py` is the same pipeline plus an optional 7th step:
+a local vision-language model (**Qwen2.5-VL-3B-Instruct**, 4-bit quantized by
+default) re-inspects each building's ground-floor crop, decides whether it's
+really *one* shop or several adjoining units, and classifies each unit using
+the ground-floor crop, CLIP's baseline guess, and the PaddleOCR sign text as
+context. It also switches to a different 12-class use taxonomy (Food &
+Beverage, Retail/Utility, Health and wellness establishments, Beauty and
+fashion boutiques, Professional services, Parking lot, Accommodation,
+Workshops, Open Public Space, Closed Public Space, Other, Vacant) instead of
+v2's 14-class list.
+
+```bash
+pip install -r requirements.txt   # now also installs accelerate + bitsandbytes
+
+python ground_floor_sam_gdinov2.5.py data/panos/street.jpg --use-vlm
+
+# useful flags
+python ground_floor_sam_gdinov2.5.py data/panos/street.jpg --use-vlm \
+    --vlm-model Qwen/Qwen2.5-VL-3B-Instruct \  # swap in a different Qwen2.5-VL checkpoint
+    --no-vlm-4bit                              # disable 4-bit quantization -- needs >=16GB VRAM
+```
+
+It runs in two VLM calls per building (a spatial split, then one focused
+classification call per unit) rather than one compound call, which was found
+to be more reliable in testing. With `--use-vlm`, each run also writes a
+`<name>_ground_floor_vlm.json` sidecar with the full per-unit breakdown
+(bounding fractions, use class, confidence, evidence) alongside the usual PNG
+outputs.
+
+**Sizing**: 4-bit NF4 quantization uses roughly 2.5–3.5 GB of VRAM on top of
+the ~4–5 GB the rest of the stack (GDINO + SAM + SegFormer + CLIP + PaddleOCR)
+already occupies — tested working on an 8 GB card. `--use-vlm` is entirely
+optional and additive: if the VLM (or `bitsandbytes`/`accelerate`) can't be
+loaded, it's silently disabled and every building keeps its CLIP-only verdict.
+
+**Honest caveat from testing**: a 3B, 4-bit-quantized VLM is not fully
+reliable at this task. It sometimes classifies correctly using the
+provided OCR text, sometimes ignores clear OCR signal in favor of a generic
+visual guess, and its "evidence" field is occasionally unrelated to the actual
+decision. Treat `--use-vlm` output as a second opinion worth spot-checking,
+not a ground truth upgrade over the base CLIP classification.
 
 ---
 

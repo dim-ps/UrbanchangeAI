@@ -18,8 +18,8 @@ ground_floor_pipeline/
 ├── ground_floor_sam_gdinov2.py   # the current pipeline (single file) -- adds PaddleOCR sign text
 ├── ground_floor_sam_gdinov2.5.py # optional next step -- adds a local VLM correction pass, see below
 ├── ground_floor_sam_gdino.py     # earlier version, kept for reference (no OCR step)
-├── download_models.sh          # download the 2 checkpoints (bash / wget)
-├── download_models.py          # download the 2 checkpoints (pure python)
+├── download_models.sh            # download the 2 checkpoints (bash / wget)
+├── download_models.py            # download the 2 checkpoints (pure python)
 ├── requirements.txt
 ├── README.md
 ├── pretrained_model/           # the 2 .pth checkpoints go here

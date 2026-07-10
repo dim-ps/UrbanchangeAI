@@ -111,6 +111,10 @@ ground-floor mask).
    **building boundary**, yellow-dashed **ground-floor region**, B# tags,
    per-building use + sign text + confidence, legend, and summary.
 
+
+   <img width="1440" height="880" alt="image" src="https://github.com/user-attachments/assets/0a2923ea-a82b-4a3c-8490-fb58dd1fec09" />
+
+
 ---
 
 ## Optional next step: VLM-corrected ground floors (v2.5)

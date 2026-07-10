@@ -22,9 +22,9 @@ ground_floor_pipeline/
 ├── download_models.py            # download the 2 checkpoints (pure python)
 ├── requirements.txt
 ├── README.md
-├── pretrained_model/           # the 2 .pth checkpoints go here
-└── data/panos/                 # put your input images here (optional)
-└── results/                    # created automatically; annotated outputs land here
+├── pretrained_model/             # the 2 .pth checkpoints go here
+└── data/panos/                   # put your input images here (optional)
+└── results/                      # created automatically; annotated outputs land here
 ```
 
 ---
